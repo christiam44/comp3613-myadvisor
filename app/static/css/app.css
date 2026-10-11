@@ -1,17 +1,20 @@
 :root {
-  /* Phase 5 theming: Guide overwrites these from docs/report.md preferences */
-  --brand-name: "FastStarter";
-  --brand-bg: #0c1218;
-  --brand-surface: #f7f4ef;
-  --brand-ink: #14202b;
-  --brand-muted: #6a7a88;
-  --brand-accent: #c45c26;
-  --brand-accent-2: #2a6f6b;
-  --brand-sidebar: #14202b;
-  --brand-sidebar-text: #a8b4bf;
-  --brand-font-display: "Fraunces", Georgia, serif;
-  --brand-font-body: "Source Sans 3", "Segoe UI", sans-serif;
-  --brand-radius: 0.85rem;
+  /* MyAdvisor phase 5 theme */
+  --brand-name: "MyAdvisor";
+  --brand-bg: #f3efe9 !important;
+  --brand-surface: #fffdfb !important;
+  --brand-ink: #2b1d3e !important;
+  --brand-muted: #655a72 !important;
+  --brand-accent: #6a4ab5 !important;
+  --brand-accent-2: #d9c8ff !important;
+  --brand-accent-3: #6a9f5d !important;
+  --brand-warning: #d1a42d !important;
+  --brand-danger: #c25e57 !important;
+  --brand-sidebar: #2b1d3e !important;
+  --brand-sidebar-text: #efe7ff !important;
+  --brand-font-display: "Segoe UI", "Arial", sans-serif;
+  --brand-font-body: "Segoe UI", "Arial", sans-serif;
+  --brand-radius: 1rem;
 }
 
 *,
@@ -23,29 +26,24 @@
 body {
   margin: 0;
   font-family: var(--brand-font-body);
-  color: var(--brand-ink);
-  background: var(--brand-bg);
+  color: var(--brand-ink) !important;
+  background: var(--brand-bg) !important;
 }
 
 .brand-wordmark {
   font-family: var(--brand-font-display);
-  font-weight: 650;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
 /* —— Public landing —— */
 .landing {
   min-height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  color: var(--brand-surface);
+  display: flex;
+  flex-direction: column;
   background:
-    linear-gradient(160deg, rgba(12, 18, 24, 0.55), rgba(12, 18, 24, 0.82)),
-    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(42, 111, 107, 0.45), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 90% 80%, rgba(196, 92, 38, 0.28), transparent 50%),
-    linear-gradient(180deg, #1a2834 0%, #0c1218 100%);
-  position: relative;
-  overflow: hidden;
+    linear-gradient(135deg, #f7f1ea 0%, #f3efe9 34%, #f3edf8 100%) !important;
+  color: var(--brand-ink) !important;
 }
 
 .landing::before {
@@ -74,18 +72,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem clamp(1.25rem, 4vw, 3rem);
+  padding: 1.25rem 2rem;
+  background: rgba(255,255,255,0.68) !important;
+  border-bottom: 1px solid rgba(43,29,62,0.08) !important;
 }
 
 .landing-nav .brand-wordmark {
-  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
-  color: var(--brand-surface);
-  text-decoration: none;
+  font-size: clamp(1.5rem, 2vw, 2.1rem);
+  color: var(--brand-accent) !important;
 }
 
 .landing-nav-actions {
   display: flex;
-  gap: 0.65rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -93,81 +92,70 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(2rem, 8vh, 5rem) clamp(1.25rem, 4vw, 3rem) 3rem;
-  max-width: 42rem;
+  align-items: center;
+  text-align: center;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 8vh, 5rem) 2rem 3rem;
+  width: min(100%, 48rem);
 }
 
 .landing-kicker {
-  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: color-mix(in srgb, var(--brand-surface) 65%, var(--brand-accent-2));
-  margin: 0 0 1rem;
+  font-size: 0.72rem;
+  color: var(--brand-muted) !important;
+  margin-bottom: 1rem;
 }
 
 .landing-hero .brand-wordmark {
-  font-size: clamp(3rem, 9vw, 5.5rem);
-  line-height: 0.95;
-  margin: 0 0 1.25rem;
-  color: var(--brand-surface);
+  font-size: clamp(3rem, 8vw, 5rem);
+  color: var(--brand-accent) !important;
+  margin: 0 0 1rem;
 }
 
 .landing-lead {
-  font-size: clamp(1.05rem, 2.2vw, 1.25rem);
-  line-height: 1.55;
-  color: color-mix(in srgb, var(--brand-surface) 78%, transparent);
+  max-width: 34rem;
+  color: var(--brand-muted) !important;
+  font-size: 1.1rem;
+  line-height: 1.7;
   margin: 0 0 2rem;
-  max-width: 28rem;
 }
 
 .landing-cta {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .btn-landing {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.35rem;
+  min-height: 46px;
+  padding: 0.8rem 1.4rem;
   border-radius: 999px;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
-  border: 1.5px solid transparent;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
-.btn-landing:hover {
-  transform: translateY(-1px);
+  border: 1px solid transparent;
 }
 
 .btn-landing-primary {
-  background: var(--brand-accent);
-  color: #fff8f3;
-}
-
-.btn-landing-primary:hover {
-  background: color-mix(in srgb, var(--brand-accent) 85%, #000);
-  color: #fff;
+  background: var(--brand-accent) !important;
+  color: #fff !important;
 }
 
 .btn-landing-ghost {
-  background: transparent;
-  color: var(--brand-surface);
-  border-color: color-mix(in srgb, var(--brand-surface) 45%, transparent);
-}
-
-.btn-landing-ghost:hover {
-  border-color: var(--brand-surface);
-  background: color-mix(in srgb, var(--brand-surface) 8%, transparent);
-  color: var(--brand-surface);
+  background: rgba(255,255,255,0.7) !important;
+  color: var(--brand-ink) !important;
+  border-color: rgba(43,29,62,0.14) !important;
 }
 
 .landing-foot {
   padding: 1.25rem clamp(1.25rem, 4vw, 3rem) 1.75rem;
-  font-size: 0.85rem;
-  color: color-mix(in srgb, var(--brand-surface) 45%, transparent);
+  color: var(--brand-muted);
+  font-size: 0.88rem;
+  text-align: center;
 }
 
 .landing-orb {
@@ -219,55 +207,215 @@ body {
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background:
-    radial-gradient(ellipse at top left, color-mix(in srgb, var(--brand-accent-2) 35%, transparent), transparent 55%),
-    radial-gradient(ellipse at bottom right, color-mix(in srgb, var(--brand-accent) 28%, transparent), transparent 50%),
-    var(--brand-bg);
 }
 
 .auth-panel {
   width: min(420px, 100%);
-  background: var(--brand-surface);
+  background: #fffefb !important;
   color: var(--brand-ink);
   border-radius: var(--brand-radius);
   padding: 2rem 1.75rem;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 18px 45px rgba(43, 29, 62, 0.12) !important;
 }
 
 .auth-panel .brand-wordmark {
-  font-size: 1.75rem;
-  margin-bottom: 0.25rem;
-  color: var(--brand-accent);
+  color: var(--brand-accent) !important;
 }
 
 .auth-panel .auth-tagline {
+  margin: 0.5rem 0 1.5rem;
   color: var(--brand-muted);
-  margin-bottom: 1.5rem;
 }
 
-.auth-panel .btn-primary {
-  background: var(--brand-accent);
-  border-color: var(--brand-accent);
-}
-
+.auth-panel .btn-primary,
 .auth-panel .btn-primary:hover {
-  background: color-mix(in srgb, var(--brand-accent) 85%, #000);
-  border-color: color-mix(in srgb, var(--brand-accent) 85%, #000);
+  background: var(--brand-accent) !important;
+  border-color: var(--brand-accent) !important;
+  color: #fff !important;
 }
 
 .auth-panel .btn-outline-secondary {
+  border-color: rgba(42, 31, 61, 0.2);
   color: var(--brand-ink);
-  border-color: color-mix(in srgb, var(--brand-ink) 25%, transparent);
 }
 
 .auth-back {
   display: inline-block;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  color: var(--brand-muted);
+  margin-bottom: 0.75rem;
+  color: var(--brand-accent);
   text-decoration: none;
+  font-weight: 600;
 }
 
-.auth-back:hover {
+.page-shell {
+  padding: 2rem;
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.workflow-card {
+  background: var(--brand-surface);
+  border: 1px solid rgba(42, 31, 61, 0.12);
+  border-radius: var(--brand-radius);
+  padding: 1.25rem;
+  box-shadow: 0 8px 24px rgba(42, 31, 61, 0.05);
+}
+
+.workflow-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.workflow-card p {
+  color: var(--brand-muted);
+  margin-bottom: 0.9rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-approved {
+  background: rgba(122, 156, 75, 0.14);
+  color: #3e5b22;
+}
+
+.status-pending {
+  background: rgba(217, 169, 52, 0.16);
+  color: #7c5b00;
+}
+
+.status-changes {
+  background: rgba(199, 90, 77, 0.14);
+  color: #7a2d2d;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.metric {
+  background: #f6f1ff;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(109, 75, 196, 0.12);
+  padding: 0.9rem 1rem;
+}
+
+.metric-label {
+  display: block;
+  color: var(--brand-muted);
+  font-size: 0.76rem;
+  margin-bottom: 0.35rem;
+}
+
+.metric-value {
+  font-size: 1.3rem;
+  font-weight: 700;
   color: var(--brand-accent);
+}
+
+.course-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.course-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(42, 31, 61, 0.1);
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, #ffffff 0%, #faf7ff 100%);
+  box-shadow: 0 6px 18px rgba(42, 31, 61, 0.03);
+}
+
+.course-item:hover {
+  border-color: rgba(106, 74, 181, 0.35);
+  box-shadow: 0 10px 22px rgba(106, 74, 181, 0.08);
+}
+
+.course-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.course-code {
+  font-weight: 700;
+  color: var(--brand-accent);
+}
+
+.course-title {
+  color: var(--brand-muted);
+  font-size: 0.9rem;
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.review-actions .btn,
+.course-item .btn,
+.modal .btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.review-actions .btn:hover,
+.course-item .btn:hover,
+.modal .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(42, 31, 61, 0.08);
+}
+
+.course-item .btn-primary,
+.modal .btn-primary,
+.btn-primary {
+  background: var(--brand-accent);
+  border-color: var(--brand-accent);
+}
+
+.course-item .btn-outline-secondary,
+.modal .btn-outline-secondary,
+.btn-outline-secondary {
+  border-color: rgba(42, 31, 61, 0.2);
+  color: var(--brand-ink);
+}
+
+#draftStateLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(106, 74, 181, 0.06);
+  border: 1px solid rgba(106, 74, 181, 0.12);
+  font-weight: 600;
+}
+
+#draftStateLabel.text-success {
+  background: rgba(58, 127, 95, 0.08);
+  color: #2d6a4f;
+  border-color: rgba(58, 127, 95, 0.18);
+}
+
+#planSubmissionMessage {
+  border-radius: 0.85rem;
 }

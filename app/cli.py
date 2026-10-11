@@ -63,6 +63,8 @@ def cmd_seed(args: argparse.Namespace) -> None:
     demo_users = [
         ("bob", "bob@example.com", "bobpass", "regular_user"),
         ("admin", "admin@example.com", "adminpass", "admin"),
+        ("advisor", "advisor@example.com", "advisorpass", "advisor"),
+        ("student1", "student1@example.com", "studentpass", "regular_user"),
     ]
 
     created = 0

@@ -1,9 +1,256 @@
 {% extends "authenticated-base.html" %}
-{% block title %}Admin{% endblock %}
+{% block title %}MyAdvisor | Advisor Review{% endblock %}
 
 {% block subpage_content %}
-<div class="container-fluid py-2">
-  <h1 class="h4 mb-2">Admin</h1>
-  <p class="text-muted mb-0">Admin workflow screens replace this shell in Phase 5 implement.</p>
+<div class="page-shell">
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+    <div>
+      <p class="landing-kicker mb-2">Advisor review</p>
+      <h1 class="brand-wordmark h2 mb-0">Approve Semester Plans</h1>
+    </div>
+    <span class="status-pill status-pending">{{ pending_count }} pending plan{% if pending_count != 1 %}s{% endif %}</span>
+  </div>
+
+  <div class="workflow-grid">
+    <section class="workflow-card">
+      <h3>Plans to review</h3>
+      <div class="course-list mt-3">
+        {% if plan_rows %}
+          {% for entry in plan_rows %}
+          <div class="course-item align-items-center plan-row {% if loop.first %}plan-row-active{% endif %}" 
+               data-plan-id="{{ entry.id }}"
+               data-student-name="{{ entry.student_name }}"
+               data-student-username="{{ entry.student_username }}"
+               data-student-major="{{ entry.student_major }}"
+               data-student-enrollment="{{ entry.student_enrollment_type }}"
+               data-submitted="{{ entry.submitted_at }}"
+               data-total-credits="{{ entry.total_credits }}"
+               data-courses='{{ entry.courses | tojson | safe }}'
+               style="cursor: pointer;">
+            <div class="course-meta flex-grow-1">
+              <span class="course-code" style="font-size: 1.05rem; font-weight: 700;">{{ entry.student_name }}</span>
+              <span class="course-title">@{{ entry.student_username }} • {{ entry.total_credits }} credits • Submitted {{ entry.submitted_at }}</span>
+            </div>
+            <span class="status-pill status-pending">Pending</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-muted">No student plans are currently awaiting review.</div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="workflow-card">
+      <h3>Selected semester plan</h3>
+      {% if plan_rows %}
+        {% set selected_plan = plan_rows[0] %}
+        <div class="mb-3">
+          <label class="form-label small text-muted">Student</label>
+          <div class="form-control bg-light" id="selected-plan-student">{{ selected_plan.student_name }}</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small text-muted">Username</label>
+          <div class="form-control bg-light" id="selected-plan-username">@{{ selected_plan.student_username }}</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small text-muted">Major</label>
+          <div class="form-control bg-light" id="selected-plan-major">{{ selected_plan.student_major }}</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small text-muted">Enrollment type</label>
+          <div class="form-control bg-light" id="selected-plan-enrollment">{{ selected_plan.student_enrollment_type }}</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small text-muted">Submission date</label>
+          <div class="form-control bg-light" id="selected-plan-date">{{ selected_plan.submitted_at }}</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small text-muted">Total credits</label>
+          <div class="form-control bg-light" id="selected-plan-credits">{{ selected_plan.total_credits }} credits</div>
+        </div>
+
+        <div class="course-list" id="selected-plan-courses">
+          {% for course in selected_plan.courses %}
+          <div class="course-item">
+            <div class="course-meta">
+              <span class="course-code">{{ course.course_code }}</span>
+              <span class="course-title">{{ course.title }}</span>
+            </div>
+            <span class="text-muted">{{ course.credits }} credits</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="review-actions">
+          <button class="btn btn-outline-secondary" type="button" id="requestChangesBtn" data-plan-id="{{ selected_plan.id }}">Request changes</button>
+          <button class="btn btn-primary" type="button" id="approvePlanBtn" data-plan-id="{{ selected_plan.id }}">Approve plan</button>
+        </div>
+        <div class="alert alert-success mt-3 mb-0 d-none" id="reviewMessage" role="alert"></div>
+      {% else %}
+        <div class="text-muted">Select a plan from the queue to start reviewing.</div>
+      {% endif %}
+    </section>
+  </div>
 </div>
+
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Approve plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label for="approvalNotes" class="form-label">Feedback for the student</label>
+        <textarea id="approvalNotes" class="form-control" rows="4" placeholder="Add a note for the student about their approved plan." required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmApproval">Approve and send feedback</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="changesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Request changes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label for="changeNotes" class="form-label">Required feedback</label>
+        <textarea id="changeNotes" class="form-control" rows="4" placeholder="Describe the required course or credit changes." required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmChangeRequest">Send feedback</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const approvalModal = new bootstrap.Modal(document.getElementById('approvalModal'));
+  const changeModal = new bootstrap.Modal(document.getElementById('changesModal'));
+  const planRows = document.querySelectorAll('.plan-row');
+  const selectedStudent = document.querySelector('#selected-plan-student');
+  const selectedDate = document.querySelector('#selected-plan-date');
+  const selectedCredits = document.querySelector('#selected-plan-credits');
+  const selectedCourses = document.querySelector('#selected-plan-courses');
+  const selectedUsername = document.querySelector('#selected-plan-username');
+  const selectedMajor = document.querySelector('#selected-plan-major');
+  const selectedEnrollment = document.querySelector('#selected-plan-enrollment');
+
+  function renderSelectedCourses(courses) {
+    if (!Array.isArray(courses)) return '';
+    return courses.map((course) => `
+      <div class="course-item">
+        <div class="course-meta">
+          <span class="course-code">${course.course_code}</span>
+          <span class="course-title">${course.title}</span>
+        </div>
+        <span class="text-muted">${course.credits} credits</span>
+      </div>
+    `).join('');
+  }
+
+  function updateSelectedPlan(planId, studentName, submitted, totalCredits, courseList, username, major, enrollment) {
+    if (!selectedStudent || !selectedDate || !selectedCredits || !selectedCourses) return;
+    selectedStudent.textContent = studentName;
+    selectedDate.textContent = submitted || 'N/A';
+    selectedCredits.textContent = `${totalCredits} credits`;
+    selectedCourses.innerHTML = renderSelectedCourses(courseList);
+    if (selectedUsername) selectedUsername.textContent = `@${username || 'unknown'}`;
+    if (selectedMajor) selectedMajor.textContent = major || 'Not specified';
+    if (selectedEnrollment) selectedEnrollment.textContent = enrollment || 'Not specified';
+    requestChangesBtn.dataset.planId = planId;
+    approvePlanBtn.dataset.planId = planId;
+  }
+
+  planRows.forEach((row) => {
+    row.addEventListener('click', function () {
+      planRows.forEach((item) => item.classList.remove('plan-row-active'));
+      this.classList.add('plan-row-active');
+      const planId = this.dataset.planId;
+      const studentName = this.dataset.studentName;
+      const submitted = this.dataset.submitted;
+      const totalCredits = this.dataset.totalCredits;
+      const courseList = JSON.parse(this.dataset.courses || '[]');
+      const username = this.dataset.studentUsername;
+      const major = this.dataset.studentMajor;
+      const enrollment = this.dataset.studentEnrollment;
+
+      updateSelectedPlan(planId, studentName, submitted, totalCredits, courseList, username, major, enrollment);
+    });
+  });
+
+  document.getElementById('approvePlanBtn')?.addEventListener('click', function () {
+    approvalModal.show();
+  });
+
+  document.getElementById('confirmApproval')?.addEventListener('click', function () {
+    const notes = document.getElementById('approvalNotes').value.trim();
+    if (!notes) {
+      document.getElementById('approvalNotes').focus();
+      return;
+    }
+    const planId = document.getElementById('approvePlanBtn').dataset.planId;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("approve_plan") }}';
+
+    const planField = document.createElement('input');
+    planField.type = 'hidden';
+    planField.name = 'plan_id';
+    planField.value = planId;
+    form.appendChild(planField);
+
+    const notesField = document.createElement('input');
+    notesField.type = 'hidden';
+    notesField.name = 'notes';
+    notesField.value = notes;
+    form.appendChild(notesField);
+
+    document.body.appendChild(form);
+    form.submit();
+  });
+
+  document.getElementById('requestChangesBtn')?.addEventListener('click', function () {
+    changeModal.show();
+  });
+
+  document.getElementById('confirmChangeRequest')?.addEventListener('click', function () {
+    const notes = document.getElementById('changeNotes').value.trim();
+    if (!notes) {
+      document.getElementById('changeNotes').focus();
+      return;
+    }
+    const planId = document.getElementById('requestChangesBtn').dataset.planId;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("request_changes") }}';
+
+    const planField = document.createElement('input');
+    planField.type = 'hidden';
+    planField.name = 'plan_id';
+    planField.value = planId;
+    form.appendChild(planField);
+
+    const notesField = document.createElement('input');
+    notesField.type = 'hidden';
+    notesField.name = 'notes';
+    notesField.value = notes;
+    form.appendChild(notesField);
+
+    document.body.appendChild(form);
+    form.submit();
+  });
+</script>
 {% endblock %}

@@ -1,9 +1,574 @@
 {% extends "authenticated-base.html" %}
-{% block title %}Home{% endblock %}
+{% block title %}MyAdvisor | Dashboard{% endblock %}
 
 {% block subpage_content %}
-<div class="container-fluid py-2">
-  <h1 class="h4 mb-2">Home</h1>
-  <p class="text-muted mb-0">Workflow screens replace this shell in Phase 5 implement.</p>
+<div id="course-data" data-courses='{{ course_catalog | tojson | safe }}' data-selected-codes='{{ current_plan_course_codes | tojson | safe }}' data-completed-credits='{{ total_completed_credits | default(0) }}' hidden></div>
+<div class="page-shell">
+  <div class="screen-panel" id="plan-page">
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+          <div>
+            <p class="landing-kicker mb-2">Student dashboard</p>
+            <h1 class="brand-wordmark h2 mb-0">Plan Semester Courses</h1>
+          </div>
+          <div class="status-pill {% if current_plan and current_plan.status == 'approved' %}status-approved{% elif current_plan and current_plan.status == 'flagged_for_changes' %}status-changes{% else %}status-pending{% endif %}" id="semesterBadge">
+            {% if current_plan %}
+              {% if current_plan.status == 'approved' %}Status: Approved{% elif current_plan.status == 'flagged_for_changes' %}Status: Changes requested{% else %}Status: Pending review{% endif %}
+            {% else %}
+              Semester: Fall 2026
+            {% endif %}
+          </div>
+        </div>
+
+        {% if current_plan and current_plan.advising_session_notes %}
+        <div class="alert {% if current_plan.status == 'approved' %}alert-success{% else %}alert-warning{% endif %} mb-4" role="alert">
+          <div class="fw-semibold mb-1">
+            {% if current_plan.status == 'approved' %}Advisor approval notes{% else %}Advisor feedback{% endif %}
+          </div>
+          <div>{{ current_plan.advising_session_notes }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <section class="workflow-card">
+          <h3>Course catalog</h3>
+          <div class="mb-3">
+            <label class="form-label small text-muted">Search courses</label>
+            <div class="input-group">
+              <input class="form-control" id="courseSearchInput" type="text" placeholder="Search by course code or title" />
+              <button class="btn btn-primary" id="courseSearchBtn" type="button">Filter</button>
+            </div>
+          </div>
+
+          <div class="course-list" id="courseCatalog"></div>
+
+          <div class="mt-3 d-flex justify-content-between align-items-center">
+            <span class="text-muted small" id="courseSelectionSummary">Selected courses: 0 • Total credits: 0</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="workflow-card mb-4">
+          <h3>My plan</h3>
+          <div class="mt-3" id="selectedPlanSummary">
+            {% if current_plan_courses %}
+              <div class="course-list">
+                {% for course in current_plan_courses %}
+                <div class="course-item">
+                  <div class="course-meta">
+                    <span class="course-code">{{ course.course_code }}</span>
+                    <span class="course-title">{{ course.title }}</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="text-muted small">{{ course.credits }} cr</span>
+                    {% if course.status == 'completed' %}
+                      <span class="status-pill status-approved">Completed</span>
+                    {% elif course.status == 'in_progress' %}
+                      <span class="status-pill status-pending">In progress</span>
+                    {% else %}
+                      <span class="status-pill status-changes">Planned</span>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-secondary" data-remove-course="{{ course.course_code }}" type="button">Remove</button>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="mt-3 fw-semibold">Total credits: {{ current_plan_courses|sum(attribute='credits') }}</div>
+            {% else %}
+              <div class="text-muted">No courses selected yet.</div>
+            {% endif %}
+          </div>
+
+          {% if current_plan and current_plan.advising_session_notes %}
+          <div class="mt-3">
+            <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+              View feedback
+            </button>
+          </div>
+          {% endif %}
+
+          <div class="mt-2 mb-2 small text-muted" id="draftStateLabel">Local draft state: empty</div>
+
+          <form method="post" action="{{ url_for('submit_plan') }}" class="mt-3" id="submitPlanForm">
+            <input type="hidden" name="selected_courses" id="selectedCoursesInput" value="" />
+            <div class="review-actions d-flex flex-column gap-2">
+              <button class="btn btn-outline-secondary" type="button" id="saveDraftBtn">Save draft</button>
+              <button class="btn btn-outline-secondary" type="button" id="resetDraftBtn">Reset draft</button>
+              <button class="btn btn-primary" type="submit" id="submitPlanBtn">Submit plan</button>
+            </div>
+          </form>
+          <div class="alert alert-success mt-3 mb-0 d-none" id="planSubmissionMessage" role="alert"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-panel" id="progress-page" style="display:none;">
+    <div class="row g-4 mt-1">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+          <div>
+            <p class="landing-kicker mb-2">Student dashboard</p>
+            <h1 class="brand-wordmark h2 mb-0">Track Degree Progress</h1>
+          </div>
+        </div>
+
+        <section class="workflow-card">
+          <h3>Degree progress</h3>
+          <div class="summary-row" id="progressSummary"></div>
+
+          <div class="mt-3">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-semibold">Degree progress</span>
+              <span class="text-muted small" id="progressPercentLabel">0% complete</span>
+            </div>
+            <div class="progress" style="height: 12px;">
+              <div class="progress-bar bg-success" id="progressBar" role="progressbar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <ul class="nav nav-tabs" id="progressTabs" role="tablist">
+              <li class="nav-item"><button class="nav-link active" data-tab="all" type="button">All</button></li>
+              <li class="nav-item"><button class="nav-link" data-tab="completed" type="button">Completed</button></li>
+              <li class="nav-item"><button class="nav-link" data-tab="in_progress" type="button">In progress</button></li>
+              <li class="nav-item"><button class="nav-link" data-tab="outstanding" type="button">Outstanding</button></li>
+            </ul>
+          </div>
+
+          <div class="course-list mt-3" id="degreeRecords"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const dataContainer = document.getElementById('course-data');
+  const courses = JSON.parse(dataContainer.dataset.courses || '[]');
+  const fallbackCourses = [
+    { code: 'COMP 101', title: 'Intro to Computing', credits: 3, type: 'Core', eligible: true },
+    { code: 'MATH 220', title: 'Discrete Mathematics', credits: 3, type: 'Core', eligible: true },
+    { code: 'STAT 210', title: 'Statistics for Science', credits: 3, type: 'Core', eligible: true },
+    { code: 'COMP 215', title: 'Software Design', credits: 4, type: 'Core', eligible: true },
+    { code: 'ENG 202', title: 'Technical Writing', credits: 3, type: 'Elective', eligible: true },
+    { code: 'COMP 210', title: 'Data Structures', credits: 3, type: 'Core', eligible: true },
+    { code: 'COMP 230', title: 'Computer Architecture', credits: 4, type: 'Core', eligible: true },
+    { code: 'MATH 230', title: 'Linear Algebra', credits: 4, type: 'Core', eligible: true },
+    { code: 'COMP 310', title: 'Algorithms', credits: 4, type: 'Core', eligible: true },
+    { code: 'COMP 330', title: 'Database Systems', credits: 4, type: 'Core', eligible: true },
+  ];
+  const featuredCourseCodes = ['COMP 101', 'MATH 220', 'STAT 210', 'COMP 215', 'ENG 202', 'COMP 210', 'COMP 230', 'MATH 230', 'COMP 310', 'COMP 330'];
+  const baseCourses = (Array.isArray(courses) && courses.length) ? courses : fallbackCourses;
+  let selectedCourseCodes = new Set(JSON.parse(dataContainer.dataset.selectedCodes || '[]'));
+
+  const draftStorageKey = 'myadvisor-draft-plan';
+
+  function syncSelectedInput() {
+    const codes = [...selectedCourseCodes].join(',');
+    document.getElementById('selectedCoursesInput').value = codes;
+  }
+
+  function renderPlanSummary() {
+    const selectedCourses = baseCourses.filter(course => selectedCourseCodes.has(course.code));
+    const totalCredits = selectedCourses.reduce((sum, course) => sum + course.credits, 0);
+    const summary = document.getElementById('selectedPlanSummary');
+    if (!selectedCourses.length) {
+      summary.innerHTML = '<div class="text-muted">No courses selected yet.</div>';
+      return;
+    }
+    summary.innerHTML = `
+      <div class="course-list">
+        ${selectedCourses.map(course => {
+          const isCompleted = course.status === 'completed';
+          const stateLabel = isCompleted ? 'Completed' : course.status === 'in_progress' ? 'In progress' : 'Planned';
+          const stateClass = isCompleted ? 'status-approved' : course.status === 'in_progress' ? 'status-pending' : 'status-changes';
+          return `
+            <div class="course-item">
+              <div class="course-meta">
+                <span class="course-code">${course.code}</span>
+                <span class="course-title">${course.title}</span>
+              </div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="text-muted small">${course.credits} cr</span>
+                <span class="status-pill ${stateClass}">${stateLabel}</span>
+                <button class="btn btn-sm btn-outline-secondary" data-remove-course="${course.code}" type="button">Remove</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div class="mt-3 fw-semibold">Total credits: ${totalCredits}</div>
+    `;
+  }
+
+  function getVisibleCoursesForQuery(query) {
+    const normalizedQuery = (query || '').trim().toLowerCase();
+    const orderedCourses = [...baseCourses].sort((a, b) => {
+      const aPriority = featuredCourseCodes.indexOf(a.code);
+      const bPriority = featuredCourseCodes.indexOf(b.code);
+      const aScore = aPriority === -1 ? 999 : aPriority;
+      const bScore = bPriority === -1 ? 999 : bPriority;
+      if (aScore !== bScore) return aScore - bScore;
+      return a.code.localeCompare(b.code);
+    });
+
+    if (!normalizedQuery) {
+      return orderedCourses.slice(0, 10);
+    }
+
+    return orderedCourses.filter(course => {
+      const haystack = `${course.code} ${course.title}`.toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+  }
+
+  function renderCatalog() {
+    const query = document.getElementById('courseSearchInput').value.trim().toLowerCase();
+    const visibleCourses = getVisibleCoursesForQuery(query);
+
+    const catalog = document.getElementById('courseCatalog');
+    if (!visibleCourses.length) {
+      catalog.innerHTML = `
+        <div class="text-muted border rounded p-3 bg-light">
+          No courses match your search. Try a code like <strong>COMP</strong> or a course title such as <strong>Statistics</strong>.
+        </div>
+      `;
+      updateSelectionSummary();
+      renderPlanSummary();
+      syncSelectedInput();
+      return;
+    }
+
+    catalog.innerHTML = visibleCourses.map(course => {
+      const selected = selectedCourseCodes.has(course.code);
+      const isDisabled = course.code === 'COMP 210';
+      const buttonLabel = selected ? 'Selected' : isDisabled ? 'Not eligible' : course.eligible ? 'Add' : 'Not eligible';
+      const buttonClass = selected ? 'btn btn-sm btn-primary' : isDisabled || !course.eligible ? 'btn btn-sm btn-secondary disabled' : 'btn btn-sm btn-outline-secondary';
+      return `
+        <div class="course-item">
+          <div class="course-meta">
+            <span class="course-code">${course.code}</span>
+            <span class="course-title">${course.title}</span>
+            <span class="text-muted small">${course.type} • ${course.credits} credits${course.requirement ? ' • ' + course.requirement : ''}${isDisabled ? ' • Prerequisite not met' : ''}</span>
+          </div>
+          <button class="${buttonClass}" data-course-code="${course.code}" ${isDisabled || !course.eligible ? 'disabled' : ''}>${buttonLabel}</button>
+        </div>
+      `;
+    }).join('');
+
+    updateSelectionSummary();
+    renderPlanSummary();
+    syncSelectedInput();
+  }
+
+  function updateSelectionSummary() {
+    const totalCredits = baseCourses
+      .filter(course => selectedCourseCodes.has(course.code))
+      .reduce((sum, course) => sum + course.credits, 0);
+
+    document.getElementById('courseSelectionSummary').textContent = `Selected courses: ${selectedCourseCodes.size} • Total credits: ${totalCredits}`;
+  }
+
+  function renderProgressSummary() {
+    const totalCreditsRequired = 93;
+    const completedCredits = Number(dataContainer.dataset.completedCredits || '0');
+    const completed = baseCourses.filter(c => c.status === 'completed').length;
+    const inProgress = baseCourses.filter(c => c.status === 'in_progress').length;
+    const outstanding = baseCourses.filter(c => c.status === 'outstanding').length;
+    const percent = Math.round((completedCredits / totalCreditsRequired) * 100);
+
+    document.getElementById('progressSummary').innerHTML = `
+      <div class="metric">
+        <span class="metric-label">Credits complete</span>
+        <span class="metric-value">${completedCredits}/${totalCreditsRequired}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Courses completed</span>
+        <span class="metric-value">${completed}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">In progress</span>
+        <span class="metric-value">${inProgress}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Outstanding</span>
+        <span class="metric-value">${outstanding}</span>
+      </div>
+    `;
+
+    document.getElementById('progressPercentLabel').textContent = `${percent}% complete`;
+    document.getElementById('progressBar').style.width = `${percent}%`;
+  }
+
+  function renderDegreeRecords(filter = 'all') {
+    const records = baseCourses.filter(course => {
+      if (filter === 'all') return true;
+      return course.status === filter;
+    });
+
+    const container = document.getElementById('degreeRecords');
+    container.innerHTML = records.map(course => {
+      const badgeClass = course.status === 'completed' ? 'status-approved' : course.status === 'in_progress' ? 'status-pending' : 'status-changes';
+      const statusText = course.status === 'completed' ? 'Completed' : course.status === 'in_progress' ? 'In progress' : 'Outstanding';
+      const gradeBadge = course.status === 'completed'
+        ? `<span class="status-pill ${badgeClass}">${course.grade || 'A'}</span>`
+        : `<span class="status-pill ${badgeClass}">${statusText}</span>`;
+      const completeAction = course.status === 'in_progress'
+        ? `<button class="btn btn-sm btn-primary" data-complete-course="${course.code}" type="button">Mark complete</button>`
+        : '';
+
+      return `
+        <div class="course-item">
+          <div class="course-meta">
+            <span class="course-code">${course.code}</span>
+            <span class="course-title">${course.title}</span>
+            <span class="text-muted small">${course.type} • ${course.credits} credits</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            ${gradeBadge}
+            ${completeAction}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function showToast(title, message, variant = 'success') {
+    const toast = document.getElementById('appToast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastContent = document.getElementById('toastContent');
+    toast.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info');
+    toast.classList.add(variant === 'danger' ? 'bg-danger' : variant === 'warning' ? 'bg-warning' : variant === 'info' ? 'bg-info' : 'bg-success');
+    toastTitle.textContent = title;
+    toastContent.textContent = message;
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+  }
+
+  function updateDraftStateLabel() {
+    const label = document.getElementById('draftStateLabel');
+    if (!label) return;
+
+    const saved = localStorage.getItem(draftStorageKey);
+
+    if (selectedCourseCodes.size > 0) {
+      label.textContent = saved ? 'Local draft state: saved' : 'Local draft state: unsaved';
+      label.className = 'mt-2 mb-2 small ' + (saved ? 'text-success' : 'text-muted');
+      return;
+    }
+
+    label.textContent = 'Local draft state: empty';
+    label.className = 'mt-2 mb-2 small text-muted';
+  }
+
+  function persistDraftSelection() {
+    try {
+      localStorage.setItem(draftStorageKey, JSON.stringify([...selectedCourseCodes]));
+    } catch (error) {
+      console.warn('Unable to save local draft selection', error);
+    }
+    syncSelectedInput();
+    renderPlanSummary();
+    updateSelectionSummary();
+    updateDraftStateLabel();
+  }
+
+  function restoreDraftSelection() {
+    const saved = localStorage.getItem(draftStorageKey);
+    if (!saved) {
+      updateDraftStateLabel();
+      return;
+    }
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        selectedCourseCodes = new Set(parsed.filter(code => baseCourses.some(course => course.code === code)));
+      }
+    } catch (error) {
+      console.warn('Unable to restore draft selection', error);
+    }
+    syncSelectedInput();
+    updateDraftStateLabel();
+  }
+
+  function saveDraftAndRefresh() {
+    persistDraftSelection();
+    renderCatalog();
+    const message = document.getElementById('planSubmissionMessage');
+    message.textContent = 'Draft saved successfully.';
+    message.classList.remove('d-none');
+    message.classList.add('alert-info');
+    message.classList.remove('alert-success');
+    message.classList.remove('alert-danger');
+    showToast('Draft saved', 'Your temporary plan has been saved locally and will still be here after refresh.', 'info');
+  }
+
+  function resetDraftSelection() {
+    localStorage.removeItem(draftStorageKey);
+    selectedCourseCodes = new Set();
+    syncSelectedInput();
+    renderCatalog();
+    renderPlanSummary();
+    updateSelectionSummary();
+    updateDraftStateLabel();
+    const message = document.getElementById('planSubmissionMessage');
+    message.textContent = 'Draft reset successfully.';
+    message.classList.remove('d-none');
+    message.classList.add('alert-warning');
+    message.classList.remove('alert-info');
+    message.classList.remove('alert-success');
+    showToast('Draft reset', 'Your saved draft has been cleared.', 'warning');
+  }
+
+  const saveCompleteButton = document.getElementById('confirmCompleteCourse');
+  if (saveCompleteButton) {
+    saveCompleteButton.addEventListener('click', function () {
+      const form = document.getElementById('completeCourseForm');
+      const modal = bootstrap.Modal.getInstance(document.getElementById('completeCourseModal'));
+      if (modal) {
+        modal.hide();
+      }
+      if (form) {
+        form.submit();
+      }
+    });
+  }
+
+  document.getElementById('courseSearchInput').addEventListener('input', function () {
+    renderCatalog();
+  });
+
+  document.getElementById('courseSearchBtn').addEventListener('click', function () {
+    renderCatalog();
+  });
+
+  document.addEventListener('click', (event) => {
+    const completeCourseBtn = event.target.closest('[data-complete-course]');
+    if (completeCourseBtn) {
+      const courseCode = completeCourseBtn.dataset.completeCourse;
+      document.getElementById('completeCourseCode').value = courseCode;
+      const modal = new bootstrap.Modal(document.getElementById('completeCourseModal'));
+      modal.show();
+      return;
+    }
+
+    const courseBtn = event.target.closest('[data-course-code]');
+    if (courseBtn) {
+      const code = courseBtn.dataset.courseCode;
+      if (selectedCourseCodes.has(code)) {
+        selectedCourseCodes.delete(code);
+      } else {
+        selectedCourseCodes.add(code);
+      }
+      renderCatalog();
+      persistDraftSelection();
+    }
+
+    const removeBtn = event.target.closest('[data-remove-course]');
+    if (removeBtn) {
+      selectedCourseCodes.delete(removeBtn.dataset.removeCourse);
+      renderCatalog();
+      persistDraftSelection();
+    }
+
+    const tabButton = event.target.closest('[data-tab]');
+    if (tabButton) {
+      document.querySelectorAll('#progressTabs .nav-link').forEach(btn => btn.classList.remove('active'));
+      tabButton.classList.add('active');
+      renderDegreeRecords(tabButton.dataset.tab);
+    }
+  });
+
+  document.getElementById('saveDraftBtn').addEventListener('click', function () {
+    saveDraftAndRefresh();
+  });
+
+  document.getElementById('resetDraftBtn').addEventListener('click', function () {
+    resetDraftSelection();
+  });
+
+  restoreDraftSelection();
+  renderCatalog();
+  renderProgressSummary();
+  renderDegreeRecords('all');
+</script>
+
+<div class="modal fade" id="confirmSubmitModal" tabindex="-1" aria-labelledby="confirmSubmitModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmSubmitModalLabel">Confirm semester plan submission</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to submit this semester plan for advisor review?
+        <div class="mt-3 fw-semibold" id="confirmSubmitSummary">0 courses selected</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmSubmitAction">Yes, submit plan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="feedbackModalLabel">Advisor feedback</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if current_plan and current_plan.advising_session_notes %}
+        <div class="alert {% if current_plan.status == 'approved' %}alert-success{% else %}alert-warning{% endif %} mb-0">
+          {{ current_plan.advising_session_notes }}
+        </div>
+        {% else %}
+        <div class="text-muted">No advisor feedback has been submitted for this plan yet.</div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="completeCourseModal" tabindex="-1" aria-labelledby="completeCourseModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="completeCourseModalLabel">Mark course complete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{{ url_for('update_course_status') }}" id="completeCourseForm">
+          <input type="hidden" name="course_code" id="completeCourseCode" value="" />
+          <input type="hidden" name="semester" value="Fall 2026" />
+          <input type="hidden" name="course_status" value="completed" />
+          <div class="mb-3">
+            <label for="completeCourseGrade" class="form-label">Grade</label>
+            <select class="form-select" id="completeCourseGrade" name="grade">
+              <option value="">No grade recorded</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="completeCourseForm" class="btn btn-primary" id="confirmCompleteCourse">Save completion</button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

@@ -46,11 +46,41 @@
 
     #content {
         width: 100%;
-        padding: 1rem;
+        padding: 0 1rem 1rem;
         transition: all 0.3s;
         display: flex;
         flex-direction: column;
         background-color: #f4f6f8;
+    }
+
+    .topbar {
+        background: #fff;
+        border-bottom: 1px solid #dee2e6;
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.25rem;
+        margin: 0 -1rem 1rem;
+    }
+
+    .topbar-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 700;
+        color: var(--brand-sidebar);
+        font-size: 1.35rem;
+    }
+
+    .topbar-title .brand-wordmark {
+        font-size: 1.55rem;
+        letter-spacing: -0.04em;
+    }
+
+    .topbar-user {
+        font-weight: 600;
+        color: var(--brand-sidebar);
     }
 
     .navbar {
@@ -63,16 +93,30 @@
 {% block content %}
 <div id="wrapper">
     <nav id="sidebar" class="p-3 d-flex flex-column vh-100">
-        <div class="brand-wordmark">FastStarter</div>
+        <div class="brand-wordmark">MyAdvisor</div>
 
         <ul class="nav nav-pills flex-column gap-2 flex-grow-1">
+            {% if user.role in ['student', 'regular_user'] %}
             <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.url.path.startswith('/app') }}"
-                   href="{{ url_for('user_home_view') }}">
-                    <span class="material-symbols-outlined me-2">home</span>
-                    Home
+                <a class="nav-link d-flex align-items-center screen-link active" data-screen="plan" href="#plan-page">
+                    <span class="material-symbols-outlined me-2">calendar_month</span>
+                    Plan semester
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center screen-link" data-screen="progress" href="#progress-page">
+                    <span class="material-symbols-outlined me-2">insights</span>
+                    Degree progress
+                </a>
+            </li>
+            {% elif user.role in ['admin', 'advisor'] %}
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center" href="{{ url_for('admin_home_view') }}">
+                    <span class="material-symbols-outlined me-2">fact_check</span>
+                    Review plans
+                </a>
+            </li>
+            {% endif %}
             <li class="nav-item mt-auto">
                 <a class="nav-link d-flex align-items-center text-danger" href="{{ url_for('logout') }}">
                     <span class="material-symbols-outlined me-2">logout</span>
@@ -83,14 +127,15 @@
     </nav>
 
     <div id="content">
-        <nav class="navbar navbar-expand-lg bg-white mb-4 px-3 rounded-3 shadow-sm">
-            <button class="btn btn-outline-secondary" id="menu-toggle" type="button">
-                <span class="material-symbols-outlined md-dark">menu</span>
-            </button>
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <span class="fw-semibold">Welcome, {{ user.username }}</span>
+        <div class="topbar">
+            <div class="topbar-title">
+                <button class="btn btn-outline-secondary" id="menu-toggle" type="button">
+                    <span class="material-symbols-outlined md-dark">menu</span>
+                </button>
+                <span class="brand-wordmark">MyAdvisor</span>
             </div>
-        </nav>
+            <div class="topbar-user">{{ user.username }}</div>
+        </div>
 
         <div class="row">
             <div class="col-12">
@@ -108,6 +153,42 @@
     document.getElementById("menu-toggle").addEventListener("click", function () {
         document.getElementById("sidebar").classList.toggle("collapsed");
     });
+
+    document.querySelectorAll('.screen-link').forEach((link) => {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            const targetScreen = this.dataset.screen;
+            document.querySelectorAll('.screen-link').forEach((item) => item.classList.remove('active'));
+            this.classList.add('active');
+
+            const target = document.getElementById(targetScreen === 'plan' ? 'plan-page' : 'progress-page');
+            if (!target) return;
+
+            document.querySelectorAll('.screen-panel').forEach((panel) => {
+                panel.style.display = panel.id === target.id ? 'block' : 'none';
+            });
+            window.location.hash = target.id;
+        });
+    });
+
+    function initializeScreenSelection() {
+        const hash = window.location.hash.replace('#', '');
+        const defaultScreen = hash === 'progress-page' ? 'progress' : 'plan';
+        const target = defaultScreen === 'plan' ? 'plan-page' : 'progress-page';
+
+        document.querySelectorAll('.screen-panel').forEach((panel) => {
+            const visible = panel.id === target;
+            panel.style.display = visible ? 'block' : 'none';
+        });
+
+        const activeLink = document.querySelector(`.screen-link[data-screen="${defaultScreen}"]`);
+        if (activeLink) {
+            document.querySelectorAll('.screen-link').forEach((item) => item.classList.remove('active'));
+            activeLink.classList.add('active');
+        }
+    }
+
+    initializeScreenSelection();
 </script>
 {% block subpage_scripts %}{% endblock %}
 {% endblock %}

@@ -42,7 +42,7 @@ IsUserLoggedIn = Annotated[bool, Depends(is_logged_in)]
 AuthDep = Annotated[User, Depends(get_current_user)]
 
 async def is_admin(user: User):
-    return user.role == "admin"
+    return user.role in {"admin", "advisor"}
 
 async def is_admin_dep(user: AuthDep):
     if not await is_admin(user):
