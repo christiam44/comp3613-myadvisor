@@ -43,7 +43,8 @@ def test_in_progress_clears_grade(service, student):
     record = service.set_course_status(student.id, "COMP 101", "in_progress", grade="A")
     assert record.grade is None
 
-    def test_review_invalid_decision_raises(service, student, advisor):
+
+def test_review_invalid_decision_raises(service, student, advisor):
     plan = service.submit_plan(student.id, ["COMP 101"])
     with pytest.raises(ValueError):
         service.review_plan(plan.id, "maybe", "notes", advisor.id)
