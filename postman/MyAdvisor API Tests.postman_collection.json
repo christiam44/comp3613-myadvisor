@@ -1,0 +1,993 @@
+{
+	"info": {
+		"_postman_id": "c7c86865-b2d7-4f6c-9880-792f0baeb049",
+		"name": "MyAdvisor API Tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33031800"
+	},
+	"item": [
+		{
+			"name": "1 - Auth",
+			"item": [
+				{
+					"name": "Login student",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"const body = pm.response.json();\r",
+									"pm.test(\"Returns a bearer token\", () => {\r",
+									"    pm.expect(body.access_token).to.be.a(\"string\").and.not.empty;\r",
+									"    pm.expect(body.token_type).to.eql(\"bearer\");\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"student_token\", body.access_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"username\": \"student1\", \"password\": \"studentpass\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/login",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login bad credentials",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 401\", () => pm.response.to.have.status(401));\r",
+									"   pm.test(\"Error message is correct\", () => {\r",
+									"       pm.expect(pm.response.json().detail).to.eql(\"Incorrect username or password\");\r",
+									"   });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"username\": \"student1\", \"password\": \"wrongpass\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/login",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login advisor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"const body = pm.response.json();\r",
+									"pm.test(\"Returns a bearer token\", () => {\r",
+									"    pm.expect(body.access_token).to.be.a(\"string\").and.not.empty;\r",
+									"    pm.expect(body.token_type).to.eql(\"bearer\");\r",
+									"});\r",
+									"\r",
+									"   pm.collectionVariables.set(\"advisor_token\", body.access_token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"username\": \"advisor\", \"password\": \"advisorpass\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/login",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2 - Student Plan",
+			"item": [
+				{
+					"name": "Get courses",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"   const courses = pm.response.json();\r",
+									"   pm.test(\"Returns a non-empty list of courses\", () => {\r",
+									"       pm.expect(courses).to.be.an(\"array\").that.is.not.empty;\r",
+									"   });\r",
+									"   pm.test(\"Each course has code, title and credits\", () => {\r",
+									"       courses.forEach(c => {\r",
+									"           pm.expect(c).to.have.property(\"course_code\");\r",
+									"           pm.expect(c).to.have.property(\"title\");\r",
+									"           pm.expect(c).to.have.property(\"credits\");\r",
+									"       });\r",
+									"   });\r",
+									"\r",
+									"   pm.collectionVariables.set(\"course_code_1\", courses[0].course_code);\r",
+									"   pm.collectionVariables.set(\"course_code_2\", courses[1].course_code);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base}}/courses",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"courses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit plan",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 201\", () => pm.response.to.have.status(201));\r",
+									"\r",
+									"   const plan = pm.response.json();\r",
+									"   pm.test(\"Plan is pending with the submitted courses\", () => {\r",
+									"       pm.expect(plan.status).to.eql(\"pending\");\r",
+									"       pm.expect(plan.course_codes).to.have.lengthOf(2);\r",
+									"       pm.expect(plan.total_credits).to.be.above(0);\r",
+									"   });\r",
+									"\r",
+									"   pm.collectionVariables.set(\"plan_id\", plan.id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"course_codes\": [\"{{course_code_1}}\", \"{{course_code_2}}\"]}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/plans",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get my plan",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"   const plan = pm.response.json();\r",
+									"   pm.test(\"Returns the plan that was just submitted\", () => {\r",
+									"       pm.expect(plan.id).to.eql(Number(pm.collectionVariables.get(\"plan_id\")));\r",
+									"       pm.expect(plan.status).to.eql(\"pending\");\r",
+									"       pm.expect(plan.course_codes).to.include(pm.collectionVariables.get(\"course_code_1\"));\r",
+									"   });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base}}/plans/mine",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans",
+								"mine"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit plan invalid course",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 400\", () => pm.response.to.have.status(400));\r",
+									"   pm.test(\"Error detail is returned\", () => {\r",
+									"       pm.expect(pm.response.json()).to.have.property(\"detail\");\r",
+									"   });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "   {\"course_codes\": [\"FAKE9999\"]}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/plans",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{student_token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "3 - Advisor Review",
+			"item": [
+				{
+					"name": "Get pending plans",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"   const rows = pm.response.json();\r",
+									"   pm.test(\"Pending queue includes the submitted plan\", () => {\r",
+									"       pm.expect(rows).to.be.an(\"array\");\r",
+									"       const ids = rows.map(r => r.id);\r",
+									"       pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"plan_id\")));\r",
+									"   });\r",
+									"   pm.test(\"Rows have student and credit details\", () => {\r",
+									"       pm.expect(rows[0]).to.have.property(\"student_name\");\r",
+									"       pm.expect(rows[0]).to.have.property(\"total_credits\");\r",
+									"   });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base}}/plans?status=pending",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "pending"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get plans unsupported status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base}}/plans?status=approved",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "approved"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review plan invalid decision",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"decision\": \"maybe\", \"notes\": \"Testing\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/plans/{{plan_id}}/review",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans",
+								"{{plan_id}}",
+								"review"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review plan not found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"decision\": \"approved\", \"notes\": \"Testing\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/plans/999999/review",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans",
+								"999999",
+								"review"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review plan as student",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Student is refused\", () => {\r",
+									"      pm.expect(pm.response.code).to.be.oneOf([401, 403]);\r",
+									"  });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{student_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"decision\": \"approved\", \"notes\": \"Testing\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/plans/{{plan_id}}/review",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans",
+								"{{plan_id}}",
+								"review"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve plan",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"  const plan = pm.response.json();\r",
+									"  pm.test(\"Plan is approved with advisor notes\", () => {\r",
+									"      pm.expect(plan.status).to.eql(\"approved\");\r",
+									"      pm.expect(plan.advising_session_notes).to.eql(\"Approved. Good course selection.\");\r",
+									"      pm.expect(plan.advisor_id).to.not.be.null;\r",
+									"  });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"decision\": \"approved\", \"notes\": \"Approved. Good course selection.\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/plans/{{plan_id}}/review",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"plans",
+								"{{plan_id}}",
+								"review"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{advisor_token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "4 - Student Progress",
+			"item": [
+				{
+					"name": "Get progress",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"const p = pm.response.json();\r",
+									"pm.test(\"Summary has the expected fields\", () => {\r",
+									"    pm.expect(p).to.have.property(\"completed_credits\");\r",
+									"    pm.expect(p).to.have.property(\"completed_count\");\r",
+									"    pm.expect(p).to.have.property(\"in_progress_count\");\r",
+									"    pm.expect(p.required_credits).to.eql(93);\r",
+									"    pm.expect(p.records).to.be.an(\"array\");\r",
+									"});\r",
+									"pm.test(\"Each record has code, credits and status\", () => {\r",
+									"    p.records.forEach(r => {\r",
+									"        pm.expect(r).to.have.property(\"course_code\");\r",
+									"        pm.expect(r).to.have.property(\"credits\");\r",
+									"        pm.expect(r).to.have.property(\"status\");\r",
+									"    });\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"credits_before\", p.completed_credits);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base}}/progress",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"progress"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Mark course complete",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"  const rec = pm.response.json();\r",
+									"  pm.test(\"Record is completed with the grade\", () => {\r",
+									"      pm.expect(rec.course_code).to.eql(pm.collectionVariables.get(\"course_code_1\"));\r",
+									"      pm.expect(rec.status).to.eql(\"completed\");\r",
+									"      pm.expect(rec.grade).to.eql(\"A\");\r",
+									"  });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"status\": \"completed\", \"grade\": \"A\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/records/{{course_code_1}}",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"records",
+								"{{course_code_1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get progress after completion",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"   pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+									"\r",
+									"   const p = pm.response.json();\r",
+									"   const code = pm.collectionVariables.get(\"course_code_1\");\r",
+									"   const rec = p.records.find(r => r.course_code === code);\r",
+									"\r",
+									"   pm.test(\"Course is listed as completed with grade A\", () => {\r",
+									"       pm.expect(rec).to.not.be.undefined;\r",
+									"       pm.expect(rec.status).to.eql(\"completed\");\r",
+									"       pm.expect(rec.grade).to.eql(\"A\");\r",
+									"   });\r",
+									"   pm.test(\"Completed credits include the course\", () => {\r",
+									"       pm.expect(p.completed_credits).to.be.at.least(rec.credits);\r",
+									"       pm.expect(p.completed_credits).to.be.at.least(Number(pm.collectionVariables.get(\"credits_before\")));\r",
+									"   });\r",
+									"   pm.test(\"At least one course is counted as completed\", () => {\r",
+									"       pm.expect(p.completed_count).to.be.at.least(1);\r",
+									"   });"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base}}/progress",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"progress"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"status\": \"finished\", \"grade\": \"A\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/records/{{course_code_1}}",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"records",
+								"{{course_code_1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Unknown course",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"status\": \"completed\", \"grade\": \"A\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base}}/records/FAKE9999",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"records",
+								"FAKE9999"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Progress unauthenticated",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status is 401\", () => pm.response.to.have.status(401));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base}}/progress",
+							"host": [
+								"{{api_base}}"
+							],
+							"path": [
+								"progress"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{student_token}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "student_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "advisor_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "plan_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "api_base",
+			"value": "http://127.0.0.1:5000/api",
+			"type": "string"
+		},
+		{
+			"key": "course_code_1",
+			"value": ""
+		},
+		{
+			"key": "course_code_2",
+			"value": ""
+		},
+		{
+			"key": "credits_before",
+			"value": ""
+		}
+	]
+}
