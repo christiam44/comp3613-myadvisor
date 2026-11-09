@@ -16,6 +16,8 @@ dependencies = []
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+testpaths = ["tests"]
+norecursedirs = ["node_modules", "vendor", ".git", ".venv", "docs"]
 
 [tool.setuptools]
 packages = ["app"]
