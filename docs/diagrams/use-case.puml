@@ -14,16 +14,14 @@ actor "Student" as Student
 
 rectangle "MyAdvisor" {
   usecase "Plan Semester Courses" as Plan_Semester_Courses
-  usecase "View Degree Progress" as View_Degree_Progress
-  usecase "Track Degree Progress" as Track_Degree_Progress
   usecase "Approve Semester Plan" as Approve_Semester_Plan
+  usecase "Track Degree Progress" as Track_Degree_Progress
 }
 
 actor "Advisor" as Advisor
 
 Student --> Plan_Semester_Courses
-Plan_Semester_Courses ..> View_Degree_Progress : <<include>>
-Student --> Track_Degree_Progress
 Approve_Semester_Plan <-- Advisor
+Student --> Track_Degree_Progress
 
 @enduml
